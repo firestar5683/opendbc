@@ -43,6 +43,11 @@ static void gm_rx_hook(const CANPacket_t *to_push) {
   if (GET_BUS(to_push) == 0U) {
     int addr = GET_ADDR(to_push);
 
+    // Update cruise main (ACC main) state from ECM status for all GM modes
+    if (addr == 0xC9U) {  // ECMEngineStatus
+      acc_main_on = GET_BIT(to_push, 29U);
+    }
+
     if (addr == 0x184) {
       int torque_driver_new = ((GET_BYTE(to_push, 6) & 0x7U) << 8) | GET_BYTE(to_push, 7);
       torque_driver_new = to_signed(torque_driver_new, 11);
@@ -321,6 +326,7 @@ static safety_config gm_init(uint16_t param) {
   if ((gm_hw == GM_ASCM) || gm_cc_long) {
     ret.disable_forwarding = true;
   }
+  acc_main_on = false;
   return ret;
 }
 
