@@ -8,6 +8,7 @@ from opendbc.car.gm.values import DBC, CanBus, CarControllerParams, CruiseButton
 from opendbc.car.interfaces import CarControllerBase
 from opendbc.sunnypilot.car.gm.carcontroller_ext import GasInterceptorCarController
 from opendbc.sunnypilot.car.gm.values_ext import GMFlagsSP
+from opendbc.sunnypilot.car.gm.icbm import IntelligentCruiseButtonManagementInterface
 
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
 NetworkLocation = structs.CarParams.NetworkLocation
@@ -19,7 +20,7 @@ CAMERA_CANCEL_DELAY_FRAMES = 10
 MIN_STEER_MSG_INTERVAL_MS = 15
 
 
-class CarController(CarControllerBase, GasInterceptorCarController):
+class CarController(CarControllerBase, GasInterceptorCarController, IntelligentCruiseButtonManagementInterface):
   def __init__(self, dbc_names, CP, CP_SP):
     super().__init__(dbc_names, CP, CP_SP)
     self.start_time = 0.
@@ -40,6 +41,7 @@ class CarController(CarControllerBase, GasInterceptorCarController):
     self.packer_ch = CANPacker(DBC[self.CP.carFingerprint][Bus.chassis])
 
     GasInterceptorCarController.__init__(self, CP, CP_SP)
+    IntelligentCruiseButtonManagementInterface.__init__(self, CP, CP_SP)
 
   def update(self, CC, CC_SP, CS, now_nanos):
     actuators = CC.actuators
@@ -157,6 +159,11 @@ class CarController(CarControllerBase, GasInterceptorCarController):
         if self.cancel_counter > CAMERA_CANCEL_DELAY_FRAMES:
           self.last_button_frame = self.frame
           can_sends.append(gmcan.create_buttons(self.packer_pt, CanBus.CAMERA, CS.buttons_counter, CruiseButtons.CANCEL))
+
+    # Intelligent Cruise Button Management (stock ACC speed nudging)
+    if self.CP_SP.intelligentCruiseButtonManagementAvailable:
+      can_sends.extend(IntelligentCruiseButtonManagementInterface.update(
+        self, CC, CC_SP, CS, self.packer_pt, self.frame, self.last_button_frame))
 
     if self.CP.networkLocation == NetworkLocation.fwdCamera:
       # Silence "Take Steering" alert sent by camera, forward PSCMStatus with HandsOffSWlDetectionStatus=1

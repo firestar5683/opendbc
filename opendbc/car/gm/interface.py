@@ -16,6 +16,16 @@ TransmissionType = structs.CarParams.TransmissionType
 NetworkLocation = structs.CarParams.NetworkLocation
 
 PEDAL_MSG = 0x201
+NON_ACC_ICBM_CARS = {
+  CAR.CHEVROLET_BOLT_NON_ACC,
+  CAR.CHEVROLET_BOLT_NON_ACC_1ST_GEN,
+  CAR.CHEVROLET_BOLT_NON_ACC_2ND_GEN,
+  CAR.CHEVROLET_EQUINOX_NON_ACC_3RD_GEN,
+  CAR.CHEVROLET_SUBURBAN_NON_ACC_11TH_GEN,
+  CAR.CADILLAC_CT6_NON_ACC_1ST_GEN,
+  CAR.CHEVROLET_TRAILBLAZER_NON_ACC_2ND_GEN,
+  CAR.CADILLAC_XT5_NON_ACC_1ST_GEN,
+}
 
 
 # sunnypilot-specific torque parameters for Bolt cars that actually use the d parameter
@@ -151,6 +161,8 @@ class CarInterface(CarInterfaceBase):
 
       # Tuning
       ret.longitudinalTuning.kiV = [2.4, 1.5]
+
+    ret.intelligentCruiseButtonManagementAvailable = ret.pcmCruise or candidate in NON_ACC_ICBM_CARS
 
     # These cars have been put into dashcam only due to both a lack of users and test coverage.
     # These cars likely still work fine. Once a user confirms each car works and a test route is
