@@ -151,11 +151,7 @@ class CarInterface(CarInterfaceBase, CarInterfaceExt):
       # Tuning
       ret.longitudinalTuning.kiV = [2.4, 1.5]
 
-    # These cars have been put into dashcam only due to both a lack of users and test coverage.
-    # These cars likely still work fine. Once a user confirms each car works and a test route is
-    # added to opendbc/car/tests/routes.py, we can remove it from this list.
-    ret.dashcamOnly = candidate in {CAR.CADILLAC_ATS, CAR.HOLDEN_ASTRA, CAR.CHEVROLET_MALIBU, CAR.BUICK_REGAL} or \
-                      (ret.networkLocation == NetworkLocation.gateway and ret.radarUnavailable)
+    ret.dashcamOnly = False
 
     # Start with a baseline tuning for all GM vehicles. Override tuning as needed in each model section below.
     ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
@@ -232,7 +228,7 @@ class CarInterface(CarInterfaceBase, CarInterfaceExt):
     elif candidate == CAR.GMC_YUKON:
       ret.steerActuatorDelay = 0.5
       CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
-      ret.dashcamOnly = True  # Needs steerRatio, tireStiffness, and lat accel factor tuning
+      ret.dashcamOnly = False
 
     return ret
 
@@ -259,10 +255,6 @@ class CarInterface(CarInterfaceBase, CarInterfaceExt):
       stock_cp.minEnableSpeed = 24 * CV.MPH_TO_MS  # 24 mph
       stock_cp.minSteerSpeed = 3.0   # ~6 mph
 
-    # dashcamOnly platforms: untested platforms, need user validations
-    if candidate in (CAR.CHEVROLET_BOLT_NON_ACC_2ND_GEN, CAR.CHEVROLET_EQUINOX_NON_ACC_3RD_GEN,
-                     CAR.CHEVROLET_SUBURBAN_NON_ACC_11TH_GEN, CAR.CADILLAC_CT6_NON_ACC_1ST_GEN, CAR.CHEVROLET_TRAILBLAZER_NON_ACC_2ND_GEN,
-                     CAR.CADILLAC_XT5_NON_ACC_1ST_GEN):
-      stock_cp.dashcamOnly = True
+    stock_cp.dashcamOnly = False
 
     return ret
