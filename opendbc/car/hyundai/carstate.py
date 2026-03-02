@@ -70,6 +70,15 @@ class CarState(CarStateBase, EsccCarStateBase, MadsCarState, CarStateExt):
     self.cluster_speed_counter = CLUSTER_SAMPLE_RATE
 
     self.params = CarControllerParams(CP)
+    self.steering_pressed_threshold = self.params.STEER_THRESHOLD
+    self.steering_pressed_min_count = 5
+
+    # Ioniq 5 CAN-FD can report noisy driver torque around center. Raise detection threshold
+    # and require a few more consecutive frames before declaring steering override.
+    if CP.flags & HyundaiFlags.CANFD and CP.carFingerprint in (CAR.HYUNDAI_IONIQ_5, CAR.HYUNDAI_IONIQ_5_PE):
+      self.steering_pressed_threshold = 300
+      self.steering_pressed_min_count = 8
+
     self.is_canfd_angle_steering = CP.flags & HyundaiFlags.CANFD_ANGLE_STEERING
     self.imu_lateral_acceleration = 0.0  # used for CAN FD cars with angle steering
     self.hands_on_steering_grip = 0
@@ -125,7 +134,8 @@ class CarState(CarStateBase, EsccCarStateBase, MadsCarState, CarStateExt):
       50, cp.vl["CGW1"]["CF_Gway_TurnSigLh"], cp.vl["CGW1"]["CF_Gway_TurnSigRh"])
     ret.steeringTorque = cp.vl["MDPS12"]["CR_Mdps_StrColTq"]
     ret.steeringTorqueEps = cp.vl["MDPS12"]["CR_Mdps_OutTq"]
-    ret.steeringPressed = self.update_steering_pressed(abs(ret.steeringTorque) > self.params.STEER_THRESHOLD, 5)
+    ret.steeringPressed = self.update_steering_pressed(abs(ret.steeringTorque) > self.steering_pressed_threshold,
+                                                       self.steering_pressed_min_count)
     ret.steerFaultTemporary = cp.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0 or cp.vl["MDPS12"]["CF_Mdps_ToiFlt"] != 0
 
     # cruise state
@@ -262,11 +272,12 @@ class CarState(CarStateBase, EsccCarStateBase, MadsCarState, CarStateExt):
     if self.is_canfd_angle_steering:
       ret.steerFaultTemporary = ret.steerFaultTemporary or cp.vl["MDPS"]["MDPS_ADAS_AciFltSig_Lv2"] != 0
       self.hands_on_steering_grip = cp.vl["HOD_FD_01_100ms"]["HOD_Dir_Status"]
-      torque_overriding = abs(ret.steeringTorque) > self.params.STEER_THRESHOLD
-      ret.steeringPressed = self.update_steering_pressed(torque_overriding, 5)
+      torque_overriding = abs(ret.steeringTorque) > self.steering_pressed_threshold
+      ret.steeringPressed = self.update_steering_pressed(torque_overriding, self.steering_pressed_min_count)
       self.imu_lateral_acceleration = cp.vl["IMU_01_10ms"]["IMU_LatAccelVal"] * 9.81  # m/s^2
     else:
-      ret.steeringPressed = self.update_steering_pressed(abs(ret.steeringTorque) > self.params.STEER_THRESHOLD, 5)
+      ret.steeringPressed = self.update_steering_pressed(abs(ret.steeringTorque) > self.steering_pressed_threshold,
+                                                         self.steering_pressed_min_count)
 
     # TODO: alt signal usage may be described by cp.vl['BLINKERS']['USE_ALT_LAMP']
     left_blinker_sig, right_blinker_sig = "LEFT_LAMP", "RIGHT_LAMP"
