@@ -76,8 +76,8 @@ class CarState(CarStateBase, EsccCarStateBase, MadsCarState, CarStateExt):
     # Ioniq 5 CAN-FD can report noisy driver torque around center. Raise detection threshold
     # and require a few more consecutive frames before declaring steering override.
     if CP.flags & HyundaiFlags.CANFD and CP.carFingerprint in (CAR.HYUNDAI_IONIQ_5, CAR.HYUNDAI_IONIQ_5_PE):
-      self.steering_pressed_threshold = 350
-      self.steering_pressed_min_count = 10
+      self.steering_pressed_threshold = 310
+      self.steering_pressed_min_count = 8
 
     self.is_canfd_angle_steering = CP.flags & HyundaiFlags.CANFD_ANGLE_STEERING
     self.imu_lateral_acceleration = 0.0  # used for CAN FD cars with angle steering
